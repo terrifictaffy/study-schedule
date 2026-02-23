@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Plans — Stats & Biochem</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f3; --surface: #ffffff; --surface2: #f1f0ec; --border: #e8e6e1;
+    --text: #1a1a18; --text-muted: #787774; --text-light: #9b9a97;
+    --accent-stats: #2f6f4f; --accent-stats-light: #e8f4ee; --accent-stats-mid: #b8dbc9;
+    --accent-bio: #7a3a1e; --accent-bio-light: #fdf0ea; --accent-bio-mid: #e8c4a8;
+    --tag-blue: #e3eef9; --tag-blue-text: #1e4a7a;
+    --tag-orange: #fef3c7; --tag-orange-text: #92400e;
+    --tag-red: #fee2e2; --tag-red-text: #991b1b;
+    --tag-green: #dcfce7; --tag-green-text: #166534;
+    --tag-purple: #f3e8ff; --tag-purple-text: #6b21a8;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+
+  .sidebar { position: fixed; top: 0; left: 0; width: 240px; height: 100vh; background: var(--surface2); border-right: 1px solid var(--border); padding: 24px 0; z-index: 100; overflow-y: auto; }
+  .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 16px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .sidebar-logo span { font-family: 'Lora', serif; font-size: 14px; font-weight: 700; color: var(--text); }
+  .sidebar-section { padding: 4px 8px; margin-bottom: 4px; }
+  .sidebar-section-label { font-size: 11px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: .08em; padding: 6px 8px 4px; }
+  .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); text-decoration: none; transition: background .15s, color .15s; }
+  .sidebar-link:hover, .sidebar-link.active { background: var(--border); color: var(--text); }
+  .sidebar-link .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-stats { background: var(--accent-stats); }
+  .dot-bio { background: var(--accent-bio); }
+
+  .main { margin-left: 240px; max-width: 860px; padding: 56px 64px; }
+
+  .page-header { margin-bottom: 48px; animation: fadeUp .5s ease both; }
+  .page-emoji { font-size: 48px; margin-bottom: 12px; display: block; }
+  .page-title { font-family: 'Lora', serif; font-size: 36px; font-weight: 700; line-height: 1.2; margin-bottom: 10px; }
+  .page-subtitle { font-size: 15px; color: var(--text-muted); }
+  .page-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .badge-urgent { background: var(--tag-red); color: var(--tag-red-text); }
+  .badge-soon { background: var(--tag-orange); color: var(--tag-orange-text); }
+
+  .exam-section { margin-bottom: 64px; animation: fadeUp .5s ease both; }
+  .exam-section:nth-child(2) { animation-delay: .1s; }
+  .exam-section:nth-child(3) { animation-delay: .2s; }
+
+  .section-header { display: flex; align-items: flex-start; gap: 14px; padding: 20px 22px; border-radius: 12px 12px 0 0; border: 1px solid var(--border); border-bottom: none; }
+  .stats-header { background: var(--accent-stats-light); border-color: var(--accent-stats-mid); }
+  .bio-header { background: var(--accent-bio-light); border-color: var(--accent-bio-mid); }
+  .section-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .stats-icon { background: var(--accent-stats); }
+  .bio-icon { background: var(--accent-bio); }
+  .section-title { font-family: 'Lora', serif; font-size: 22px; font-weight: 700; line-height: 1.3; }
+  .section-meta { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+
+  .section-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; background: var(--surface); overflow: hidden; }
+
+  .divider { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+
+  .day-block { padding: 20px 22px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 110px 1fr; gap: 16px; transition: background .15s; }
+  .day-block:last-child { border-bottom: none; }
+  .day-block:hover { background: var(--bg); }
+  .day-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: var(--text-muted); padding-top: 3px; white-space: nowrap; }
+  .day-label .weekday { display: block; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; color: var(--text-light); }
+  .today-label .weekday { color: #dc2626; }
+  .day-content h3 { font-size: 14.5px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+
+  .task-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .task-item { display: flex; align-items: flex-start; gap: 9px; font-size: 13.5px; color: #3d3d3a; line-height: 1.5; }
+  .task-item::before { content: ''; width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: 2px; background: white; }
+  .sub-list { list-style: none; display: flex; flex-direction: column; gap: 5px; margin-top: 6px; margin-left: 4px; }
+  .sub-list .task-item::before { border-style: dashed; border-color: #c0bdb6; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 500; margin-left: 4px; vertical-align: middle; white-space: nowrap; }
+  .tag-blue { background: var(--tag-blue); color: var(--tag-blue-text); }
+  .tag-orange { background: var(--tag-orange); color: var(--tag-orange-text); }
+  .tag-green { background: var(--tag-green); color: var(--tag-green-text); }
+  .tag-purple { background: var(--tag-purple); color: var(--tag-purple-text); }
+  .tag-red { background: var(--tag-red); color: var(--tag-red-text); }
+
+  .callout { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 8px; margin: 14px 22px; font-size: 13.5px; line-height: 1.55; }
+  .callout-tip { background: #fffbeb; border: 1px solid #fde68a; }
+  .callout-warn { background: #fff1f2; border: 1px solid #fecdd3; }
+  .callout-info { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .strategy-banner { display: flex; gap: 12px; align-items: flex-start; padding: 16px 22px; background: #eff6ff; border-bottom: 1px solid #bfdbfe; font-size: 13.5px; line-height: 1.6; }
+  .strategy-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+
+  .topics-grid { display: flex; flex-wrap: wrap; gap: 7px; padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .topic-chip { padding: 4px 11px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: white; color: var(--text-muted); }
+
+  .progress-strip { display: flex; border-bottom: 1px solid var(--border); }
+  .progress-item { flex: 1; padding: 12px 14px; text-align: center; border-right: 1px solid var(--border); font-size: 12px; }
+  .progress-item:last-child { border-right: none; }
+  .progress-num { font-family: 'Lora', serif; font-size: 22px; font-weight: 700; display: block; line-height: 1; margin-bottom: 3px; }
+  .progress-label { color: var(--text-muted); }
+
+  .reg-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+  .reg-table th { background: var(--surface2); padding: 6px 10px; text-align: left; border: 1px solid var(--border); font-weight: 600; }
+  .reg-table td { padding: 6px 10px; border: 1px solid var(--border); }
+  .reg-table tr:nth-child(even) td { background: #fafaf8; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 32px 20px; }
+    .day-block { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span style="font-size:20px;">📚</span>
+    <span>My Study Plans</span>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Exams</div>
+    <a class="sidebar-link active" href="#stats"><span class="dot dot-stats"></span> Statistics · Tue Feb 24</a>
+    <a class="sidebar-link" href="#biochem"><span class="dot dot-bio"></span> Biochemistry · Wed Feb 25</a>
+  </div>
+  <div class="sidebar-section" style="margin-top:12px;">
+    <div class="sidebar-section-label">Stats Topics</div>
+    <a class="sidebar-link" href="#ch4">Ch 4 · Bivariate Data</a>
+    <a class="sidebar-link" href="#ch57">Ch 5 &amp; 7 · Probability</a>
+    <a class="sidebar-link" href="#ch8">Ch 8 · Confidence Int.</a>
+  </div>
+  <div class="sidebar-section" style="margin-top:12px;">
+    <div class="sidebar-section-label">Biochem Topics</div>
+    <a class="sidebar-link" href="#bioenergetics">Bioenergetics &amp; Cofactors</a>
+    <a class="sidebar-link" href="#glycolysis">Glycolysis (Ch 16)</a>
+    <a class="sidebar-link" href="#pyruvate">Pyruvate, PDHC &amp; ETC</a>
+    <a class="sidebar-link" href="#glycogen-mech">Glycogen Mechanisms</a>
+    <a class="sidebar-link" href="#glycogen-reg">Glycogen Regulation</a>
+    <a class="sidebar-link" href="#ppp">Pentose Phosphate</a>
+    <a class="sidebar-link" href="#final-review">Final Review</a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <div class="page-header">
+    <span class="page-emoji">🎯</span>
+    <h1 class="page-title">Exam Study Plans</h1>
+    <p class="page-subtitle">Statistics &amp; Biochemistry · Feb 22–25, 2026</p>
+    <div class="page-meta">
+      <span class="badge badge-urgent">⚡ Stats Exam: Tuesday Feb 24</span>
+      <span class="badge badge-soon">🧪 Biochem Exam: Wednesday Feb 25</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════ STATISTICS ══════════════════ -->
+  <section class="exam-section" id="stats">
+    <div class="section-header stats-header">
+      <div class="section-icon stats-icon">📊</div>
+      <div>
+        <div class="section-title">Statistics — Exam Tuesday Feb 24</div>
+        <div class="section-meta">Chapters 4, 5, 7, 8 · Bivariate Data · Probability · Normal Distribution · Confidence Intervals</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="progress-strip">
+        <div class="progress-item"><span class="progress-num" style="color:var(--accent-stats)">4</span><span class="progress-label">Chapters</span></div>
+        <div class="progress-item"><span class="progress-num" style="color:var(--accent-stats)">2</span><span class="progress-label">Days to Exam</span></div>
+        <div class="progress-item"><span class="progress-num" style="color:var(--accent-stats)">~8h</span><span class="progress-label">Study Time</span></div>
+      </div>
+      <div class="topics-grid">
+        <span class="topic-chip">Scatterplots</span><span class="topic-chip">Correlation (r)</span>
+        <span class="topic-chip">LSRL / Regression</span><span class="topic-chip">Residuals &amp; r²</span>
+        <span class="topic-chip">Sample Spaces</span><span class="topic-chip">Conditional Prob.</span>
+        <span class="topic-chip">Normal Distribution</span><span class="topic-chip">z-scores</span>
+        <span class="topic-chip">Confidence Intervals</span><span class="topic-chip">Margin of Error</span>
+        <span class="topic-chip">t-distribution</span><span class="topic-chip">PANIC Procedure</span>
+      </div>
+
+      <div class="divider"><div class="divider-line"></div><span>TODAY · Sunday Feb 22</span><div class="divider-line"></div></div>
+
+      <div id="ch4" class="day-block">
+        <div class="day-label today-label"><span class="weekday">Morning</span>9 AM – 12 PM</div>
+        <div class="day-content">
+          <h3>Chapter 4 — Summarizing Bivariate Data <span class="tag tag-blue">3 hrs</span></h3>
+          <ul class="task-list">
+            <li class="task-item">Scatterplots: direction, form, strength — sketch examples from notes</li>
+            <li class="task-item">Correlation coefficient r: formula intuition, properties (−1 to +1), what r does NOT imply (no causation)</li>
+            <li class="task-item">LSRL: ŷ = a + bx — slope b = r(sy/sx); interpret slope &amp; intercept in context</li>
+            <li class="task-item">Residuals = observed − predicted; residual plots — what random scatter vs. patterns mean</li>
+            <li class="task-item">r² = coefficient of determination: "___% of variation in y is explained by the linear relationship with x"</li>
+            <li class="task-item">Outliers vs. influential points — know how each affects r and the LSRL differently</li>
+            <li class="task-item">Practice 5–8 free-response problems with scatterplot and regression interpretation</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="ch57" class="day-block">
+        <div class="day-label today-label"><span class="weekday">Afternoon</span>1 PM – 4 PM</div>
+        <div class="day-content">
+          <h3>Chapters 5 &amp; 7 — Probability &amp; Normal Distribution <span class="tag tag-blue">3 hrs</span></h3>
+          <ul class="task-list">
+            <li class="task-item">Sample space, events, complement rule, addition rule — mutually exclusive vs. overlapping events</li>
+            <li class="task-item">Multiplication rule: P(A and B) — independent vs. dependent events</li>
+            <li class="task-item">Conditional probability: P(A|B) = P(A∩B)/P(B) — practice with two-way tables</li>
+            <li class="task-item">Discrete vs. continuous random variables; mean and variance of a probability distribution</li>
+            <li class="task-item">Normal distribution: symmetric, bell-shaped; 68-95-99.7 rule for μ ± 1σ, 2σ, 3σ</li>
+            <li class="task-item">z-score: z = (x − μ)/σ — standardize and find area under curve using z-table</li>
+            <li class="task-item">Work backwards from area to find percentile cutoff values</li>
+            <li class="task-item">At least 6 normal distribution practice problems</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div><strong>Do this now:</strong> Write a one-page formula sheet by hand — r formula, LSRL slope = r(sy/sx), z-score, all probability rules. Writing forces recall and gives you a quick-scan reference for tomorrow morning.</div>
+      </div>
+
+      <div id="ch8" class="day-block">
+        <div class="day-label today-label"><span class="weekday">Evening</span>7 PM – 9 PM</div>
+        <div class="day-content">
+          <h3>Chapter 8 — Confidence Intervals <span class="tag tag-blue">2 hrs</span></h3>
+          <ul class="task-list">
+            <li class="task-item">CI interpretation: "95% confident the true parameter lies in this interval" — NOT "95% chance μ is here"</li>
+            <li class="task-item">CI for proportion: p̂ ± z*(√(p̂(1−p̂)/n)) — check conditions: Random, Normal (np ≥ 10 &amp; n(1−p̂) ≥ 10), Independent</li>
+            <li class="task-item">CI for mean (σ unknown): x̄ ± t*(s/√n) — t-distribution with df = n−1</li>
+            <li class="task-item">Find z* and t* for 90%, 95%, 99% confidence from tables</li>
+            <li class="task-item">Margin of error = z* or t* × (SE); wider CI = higher confidence or smaller n</li>
+            <li class="task-item">PANIC: Parameter → Assumptions → Name the interval → Interval (calculate) → Conclude in context</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="divider"><div class="divider-line"></div><span>MONDAY Feb 23 · Stats Final Review</span><div class="divider-line"></div></div>
+
+      <div class="day-block">
+        <div class="day-label"><span class="weekday">Morning</span>9 AM – 11 AM</div>
+        <div class="day-content">
+          <h3>Weak Spots &amp; Mixed Practice <span class="tag tag-orange">2 hrs</span></h3>
+          <ul class="task-list">
+            <li class="task-item">Rework (not re-read) any problems you got wrong Sunday — redo from scratch</li>
+            <li class="task-item">Mixed practice across all 4 chapters using past exams or homework sets</li>
+            <li class="task-item">Timed drill: 20 minutes on probability rules with no notes open</li>
+            <li class="task-item">Confirm formula sheet is complete and all values memorized</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-label"><span class="weekday">Afternoon</span>1 PM – 3 PM</div>
+        <div class="day-content">
+          <h3>Simulated Exam — Full Timed Run <span class="tag tag-orange">2 hrs</span></h3>
+          <ul class="task-list">
+            <li class="task-item">Full practice test under exam conditions — timed, no notes, no phone</li>
+            <li class="task-item">Grade and identify any remaining gaps; do targeted review of only those concepts</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">🚫</span>
+        <div><strong>Monday evening:</strong> Stop studying by 9 PM — no new material. Get 7–8 hours of sleep. A rested brain will outperform a sleep-deprived crammer on exam day.</div>
+      </div>
+
+      <div class="divider"><div class="divider-line"></div><span>TUESDAY Feb 24 · Stats Exam Day ⚡</span><div class="divider-line"></div></div>
+
+      <div class="day-block">
+        <div class="day-label"><span class="weekday">Morning</span>Exam Day</div>
+        <div class="day-content">
+          <h3>Light Warm-Up Only <span class="tag tag-red">30 min max</span></h3>
+          <ul class="task-list">
+            <li class="task-item">Skim formula sheet — read, don't relearn anything</li>
+            <li class="task-item">Re-read CI conclusion template and z*/t* values for 90/95/99%</li>
+            <li class="task-item">Eat breakfast, bring water, arrive early — then go crush it</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ BIOCHEMISTRY ══════════════════ -->
+  <section class="exam-section" id="biochem">
+    <div class="section-header bio-header">
+      <div class="section-icon bio-icon">🧬</div>
+      <div>
+        <div class="section-title">Biochemistry — Exam Wednesday Feb 25</div>
+        <div class="section-meta">Ch 16, 20, 21 + Review Ch 10, 11, 15 · Glycolysis · PDHC · TCA · ETC · Glycogen · PPP · Bioenergetics</div>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div class="progress-strip">
+        <div class="progress-item"><span class="progress-num" style="color:var(--accent-bio)">3</span><span class="progress-label">Core Chapters</span></div>
+        <div class="progress-item"><span class="progress-num" style="color:var(--accent-bio)">3</span><span class="progress-label">Days to Exam</span></div>
+        <div class="progress-item"><span class="progress-num" style="color:var(--accent-bio)">~16h</span><span class="progress-label">Study Time</span></div>
+      </div>
+
+      <!-- Strategy banner -->
+      <div class="strategy-banner">
+        <span style="font-size:20px; flex-shrink:0; margin-top:2px;">📋</span>
+        <div>
+          <strong>Your 3-Mode Study Strategy — use in this order every session:</strong>
+          <div class="strategy-chips">
+            <span class="tag tag-purple">🃏 Quizlet → learn &amp; verify concepts first</span>
+            <span class="tag tag-orange">📖 Workbook Self-Test → apply without notes</span>
+            <span class="tag tag-red">📝 Student Companion → full exam simulation</span>
+          </div>
+          <div style="margin-top:8px; font-size:13px; color:var(--text-muted);">Quizlet activates memory → Workbook/Companion forces application under pressure. Never skip to Quizlet after problems; always earn the review.</div>
+        </div>
+      </div>
+
+      <div class="topics-grid">
+        <span class="topic-chip">Glycolysis 10 steps</span><span class="topic-chip">Enzyme Mechanisms</span>
+        <span class="topic-chip">Fisher Projections</span><span class="topic-chip">PDHC &amp; Pyruvate Fates</span>
+        <span class="topic-chip">Citric Acid Cycle</span><span class="topic-chip">ETC &amp; Ox. Phos.</span>
+        <span class="topic-chip">Fates of G6P / AcCoA</span><span class="topic-chip">Aerobic vs Anaerobic</span>
+        <span class="topic-chip">Keq / ΔG°′ / ΔG′</span><span class="topic-chip">ATP &amp; Phosphoryl Transfer (Table 15.1)</span>
+        <span class="topic-chip">Energy Charge [ATP/AMP]</span><span class="topic-chip">NAD⁺ / FAD / CoA</span>
+        <span class="topic-chip">6 Enzyme Classes</span><span class="topic-chip">Cellular Locations</span>
+        <span class="topic-chip">Glycogen Phosphorylase (PLP)</span><span class="topic-chip">Phosphoglucomutase (pSer)</span>
+        <span class="topic-chip">UDP-glucose / Glycogenin</span><span class="topic-chip">PKA hormonal cascade</span>
+        <span class="topic-chip">PP1 reciprocal regulation</span><span class="topic-chip">PPP Oxidative Phase (G6PD)</span>
+        <span class="topic-chip">Transketolase (TPP)</span><span class="topic-chip">Transaldolase (Schiff base)</span>
+        <span class="topic-chip">4 PPP cellular need scenarios</span><span class="topic-chip">Glutathione / G6PD def.</span>
+      </div>
+
+      <!-- SUNDAY NIGHT -->
+      <div class="divider"><div class="divider-line"></div><span>SUNDAY NIGHT Feb 22 · Bioenergetics &amp; Reaction Framework (Ch 15 Review)</span><div class="divider-line"></div></div>
+
+      <div id="bioenergetics" class="day-block">
+        <div class="day-label today-label"><span class="weekday">Tonight</span>9 PM – 11 PM</div>
+        <div class="day-content">
+          <h3>Bioenergetics, Cofactors &amp; Enzyme Classes <span class="tag tag-orange">2 hrs · Ch 15 Review</span></h3>
+          <ul class="task-list">
+            <li class="task-item"><strong>🃏 Quizlet first:</strong> Run bioenergetics &amp; cofactor deck to activate memory before notes</li>
+            <li class="task-item">Keq ↔ ΔG°′: ΔG°′ = −RT ln Keq; large Keq = spontaneous = negative ΔG°′</li>
+            <li class="task-item">ΔG′ = ΔG°′ + RT ln([products]/[reactants]) — actual free energy change; know how concentration shifts equilibrium position away from standard conditions</li>
+            <li class="task-item">ATP structure: adenine + ribose + 3 phosphates; γ-phosphate has high transfer potential because of electrostatic repulsion in ATP and resonance/solvation stabilization of ADP + Pi products</li>
+            <li class="task-item">Phosphoryl group transfer potential — Table 15.1: PEP &gt; 1,3-BPG &gt; ATP &gt; G6P. Compounds above ATP can drive ATP synthesis; below ATP, ATP drives their phosphorylation</li>
+            <li class="task-item">Kinases: transfer phosphoryl from ATP to substrate. Phosphatases: hydrolyze phosphate off. Identify both in glycolysis steps</li>
+            <li class="task-item">Cofactors: NAD⁺/NADH = 2e⁻ + H⁺ carrier (soluble, used in dehydrogenase reactions); FAD/FADH₂ = 2e⁻ carrier (bound to enzyme); Coenzyme A = acyl group carrier via thioester bond</li>
+            <li class="task-item">Energy charge = [ATP + ½ADP] / [ATP + ADP + AMP] — high charge (~1.0) shuts down catabolism; low charge stimulates it</li>
+            <li class="task-item">6 enzyme classes to know by name and example: Oxido-reductases (dehydrogenases, step 6 GAPDH), Transferases (kinases, step 1 hexokinase), Hydrolases, Lyases (aldolase step 4, enolase step 9), Isomerases (TPI step 5), Ligases</li>
+            <li class="task-item">Cellular locations: Glycolysis (cytosol), PDHC &amp; TCA (mitochondrial matrix), ETC (inner mitochondrial membrane), PPP (cytosol), Glycogen synthesis/breakdown (cytosol), Glucose-6-phosphatase (ER membrane — liver only)</li>
+            <li class="task-item"><strong>📖 Workbook Self-Test Ch 15 problems 11–13, 15–18, 20 + Textbook problems 7, 9:</strong> apply ΔG math without notes</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- MONDAY: GLYCOLYSIS -->
+      <div class="divider"><div class="divider-line"></div><span>MONDAY Feb 23 Morning · Glycolysis All 10 Steps + Mechanisms (Ch 16)</span><div class="divider-line"></div></div>
+
+      <div id="glycolysis" class="day-block">
+        <div class="day-label"><span class="weekday">Morning</span>9 AM – 12 PM</div>
+        <div class="day-content">
+          <h3>Glycolysis — Steps, Fisher Projections &amp; 3 Key Mechanisms <span class="tag tag-purple">3 hrs · Ch 16</span></h3>
+          <ul class="task-list">
+            <li class="task-item"><strong>🃏 Quizlet:</strong> Run glycolysis step deck — substrate, product, enzyme, cofactor for each step</li>
+            <li class="task-item">Logic: understand the rationale for the ORDER and TYPE of each reaction (Table 16.1 &amp; Fig 16.2) — don't just memorize, understand why</li>
+            <li class="task-item">Stages 1 &amp; 2 (energy investment, steps 1–5): Fischer projections of linear structures for all reactants &amp; products; cyclic structures of stage 1 metabolites (glucose, G6P, F6P, F1,6BP)</li>
+            <li class="task-item">Stage 3 (energy recovery, steps 6–10): 4 ATP + 2 NADH produced per glucose entering here; net 2 ATP for full glycolysis</li>
+            <li class="task-item">Chemical transformations at each step: type of reaction (phosphorylation, isomerization, oxidation, etc.)</li>
+            <li class="task-item"><strong>3 enzyme mechanisms — know nucleophile, electrophile, electron flow, type of catalysis:</strong>
+              <ul class="sub-list">
+                <li class="task-item"><strong>Step 1 — Hexokinase (Phosphoryl Transferase):</strong> C6-OH of glucose is nucleophile; attacks electrophilic γ-phosphorus of ATP; Mg²⁺ coordinates phosphates; SN2-like inline displacement</li>
+                <li class="task-item"><strong>Step 6 — GAPDH (oxidation coupled to phosphorylation):</strong> Cys-SH attacks aldehyde C1 → thiohemiacetal → NAD⁺ oxidizes → thioester intermediate → inorganic Pi attacks thioester → releases 1,3-BPG; "oxidation coupled to phosphorylation" = one step does both</li>
+                <li class="task-item"><strong>Step 10 — Pyruvate Kinase (Substrate Level Phosphorylation, SLP):</strong> PEP (high phosphoryl transfer potential) donates phosphoryl to ADP → pyruvate + ATP; SLP means ATP is made directly from a substrate, not via ETC proton gradient</li>
+              </ul>
+            </li>
+            <li class="task-item">Any cofactors or small molecules at each step — NAD⁺ reduced to NADH (step 6), ATP consumed (steps 1, 3), ATP produced (steps 7, 10), Pi consumed (step 6)</li>
+            <li class="task-item"><strong>📖 Workbook Self-Test Ch 16 problems 16–30 + Textbook problems 7, 10, 12, 18, 20, 21:</strong> mechanism &amp; reaction type questions without notes</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div><strong>Mechanism drill:</strong> Draw each of the 3 mechanisms (Hexokinase, GAPDH, Pyruvate Kinase) from memory with arrow-pushing. Label: nucleophile, electrophile, intermediate, bond formed/broken. This is exactly the level of detail the exam requires.</div>
+      </div>
+
+      <!-- MONDAY AFTERNOON: Pyruvate + PDHC + ETC -->
+      <div id="pyruvate" class="day-block">
+        <div class="day-label"><span class="weekday">Afternoon</span>1 PM – 4 PM</div>
+        <div class="day-content">
+          <h3>Pyruvate Fates, PDHC, TCA, ETC &amp; Full ATP Accounting <span class="tag tag-purple">3 hrs · Ch 16</span></h3>
+          <ul class="task-list">
+            <li class="task-item"><strong>🃏 Quizlet:</strong> Pyruvate fates + aerobic/anaerobic energy yield deck</li>
+            <li class="task-item">3 fates of pyruvate: (1) Aerobic → Acetyl-CoA (PDHC); (2) Anaerobic → Lactate (LDH, regenerates NAD⁺); (3) Anaerobic fermentation → Ethanol + CO₂ (pyruvate decarboxylase + ADH, yeast)</li>
+            <li class="task-item">Anaerobic fermentation purpose: regenerate NAD⁺ from NADH to maintain redox balance so glycolysis can continue (cytosol has no other NAD⁺ regeneration method without O₂)</li>
+            <li class="task-item">PDHC (mitochondrial matrix): pyruvate + CoA + NAD⁺ → Acetyl-CoA + CO₂ + NADH; 5 cofactors: TPP, lipoic acid, CoA, FAD, NAD⁺; irreversible — commits carbon to aerobic fate</li>
+            <li class="task-item">Fates of Glucose-6-Phosphate: glycolysis (energy production), glycogen synthesis (storage), or PPP (NADPH + ribose-5-P)</li>
+            <li class="task-item">Fates of Acetyl-CoA: TCA cycle (oxidation → NADH/FADH₂), fatty acid synthesis (anabolism), ketone body synthesis (liver, fasting)</li>
+            <li class="task-item">Citric Acid Cycle (8 steps, matrix): 1 Acetyl-CoA → 2 CO₂ + 3 NADH + 1 FADH₂ + 1 GTP per turn; entry via citrate synthase; key regulation: isocitrate DH &amp; α-KG DH</li>
+            <li class="task-item">ETC (inner mitochondrial membrane): NADH → Complex I → Ubiquinone (Q) → Complex III → Cyt c → Complex IV → O₂; FADH₂ → Complex II → Q; electron flow pumps H⁺ into intermembrane space</li>
+            <li class="task-item">Oxidative Phosphorylation: proton gradient drives ATP synthase (F₀F₁); ~2.5 ATP per NADH, ~1.5 ATP per FADH₂</li>
+            <li class="task-item">Anaerobic vs. Aerobic ATP — number of ATP/NADH produced: glycolysis (2 net ATP + 2 NADH), PDHC (2 NADH), TCA (6 NADH + 2 FADH₂ + 2 GTP per glucose) → aerobic total ~30–32 ATP; anaerobic = 2 ATP only</li>
+            <li class="task-item">Phosphoryl Group Transfer Reactions and SLP steps in glycolysis &amp; GNG that involve energy transformations — identify each one</li>
+            <li class="task-item"><strong>📝 Student Companion problems 5–19, 22, 23, 34–41, 46, 48, 50:</strong> full exam simulation — energy transformation, aerobic/anaerobic comparison, mechanism questions</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">🔑</span>
+        <div><strong>SLP vs. Ox Phos distinction:</strong> Substrate Level Phosphorylation = ATP made directly from a phosphorylated substrate (steps 7 &amp; 10 glycolysis; succinyl-CoA synthetase TCA). Oxidative Phosphorylation = ATP made by ATP synthase using the ETC proton gradient. Know which steps are which — this appears on almost every biochem exam.</div>
+      </div>
+
+      <!-- MONDAY EVENING: Glycogen mechanisms -->
+      <div id="glycogen-mech" class="day-block">
+        <div class="day-label"><span class="weekday">Evening</span>7 PM – 9 PM</div>
+        <div class="day-content">
+          <h3>Glycogen Breakdown &amp; Synthesis — Mechanisms <span class="tag tag-green">2 hrs · Ch 21</span></h3>
+          <ul class="task-list">
+            <li class="task-item"><strong>🃏 Quizlet:</strong> Glycogen enzyme deck — all enzymes, roles, bond types</li>
+            <li class="task-item"><strong>Breakdown:</strong> Glycogen Phosphorylase cleaves α-1,4 bonds at non-reducing ends; mechanism uses PLP (pyridoxal phosphate) as acid-base catalyst; inorganic Pi attacks C1 → carbocation transition state → releases Glucose-1-Phosphate</li>
+            <li class="task-item">Debranching: Transferase moves 3 residues to main chain (re-forms α-1,4 bond); α-1,6-Glucosidase hydrolyzes single branch residue → free glucose (NOT phosphorylated — this glucose escapes directly)</li>
+            <li class="task-item">Phosphoglucomutase: G1P ↔ G6P; ping-pong mechanism — active site has phosphorylated Ser that first donates its phosphate to C6 of substrate, then accepts it back from C1</li>
+            <li class="task-item">Glucose-6-Phosphatase: liver only (embedded in ER membrane); hydrolyzes G6P → free glucose + Pi; released to bloodstream; muscle lacks this enzyme so cannot export glucose</li>
+            <li class="task-item"><strong>Synthesis:</strong> Glucose → G6P (hexokinase) → G1P (phosphoglucomutase) → UDP-glucose + PPi (UDP-glucose pyrophosphorylase; PPi hydrolyzed → 2Pi, making reaction irreversible) → Glycogen Synthase adds to non-reducing end</li>
+            <li class="task-item">Glycogenin primer: autocatalytic Tyr-OH provides first attachment site; essential to initiate a new glycogen granule from scratch</li>
+            <li class="task-item">Branching enzyme: breaks α-1,4 bond ~7 residues from a branch point; transfers segment to form new α-1,6 branch — increases non-reducing ends &amp; solubility</li>
+            <li class="task-item">Energetic advantage: glucose released as G1P (already phosphorylated) → no ATP needed to enter glycolysis (vs. free glucose requiring 1 ATP at hexokinase)</li>
+            <li class="task-item">Tissue differences: Muscle G6P → glycolysis for local ATP. Liver G6P → Glucose-6-Phosphatase → free glucose → blood glucose maintenance</li>
+            <li class="task-item"><strong>📖 Workbook Self-Test Ch 21 problems 1–28 + Textbook problems 1–9, 12, 16:</strong> mechanism-focused questions without notes</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TUESDAY AFTERNOON: Glycogen regulation -->
+      <div class="divider"><div class="divider-line"></div><span>TUESDAY Feb 24 · Glycogen Regulation + PPP (after Stats exam)</span><div class="divider-line"></div></div>
+
+      <div id="glycogen-reg" class="day-block">
+        <div class="day-label"><span class="weekday">Afternoon</span>2 PM – 5 PM</div>
+        <div class="day-content">
+          <h3>Glycogen Regulation — Full Hormonal Cascade &amp; Reciprocal Control <span class="tag tag-green">3 hrs · Ch 21</span></h3>
+          <ul class="task-list">
+            <li class="task-item"><strong>🃏 Quizlet:</strong> Cascade &amp; reciprocal regulation deck — PKA, PP1, phosphorylase a/b</li>
+            <li class="task-item">Two phosphorylase forms: Phosphorylase a (phosphorylated, R-state, ACTIVE) vs. Phosphorylase b (dephosphorylated, T-state, inactive)</li>
+            <li class="task-item">Allosteric effectors: high [AMP] shifts T→R activating phosphorylase b (muscle energy-depleted); high [ATP] = negative effector; liver phosphorylase a directly inhibited by high [glucose] (glucose is the allosteric inhibitor)</li>
+            <li class="task-item"><strong>Muscle — Epinephrine cascade:</strong> Epi → 7TM β-adrenergic receptor → G-protein (GDP→GTP activation) → adenylate cyclase → ↑cAMP → PKA activated (cAMP binds R subunits → releases active C subunits) → phosphorylase kinase (+P, active) → phosphorylase b → phosphorylase a → breakdown ↑</li>
+            <li class="task-item"><strong>Liver cascade route 1:</strong> Glucagon → 7TM β-adrenergic receptor → same cAMP → PKA pathway as above (glucagon = fasting hormone)</li>
+            <li class="task-item"><strong>Liver cascade route 2 (Epi only):</strong> Epi → 7TM α-adrenergic receptor → phosphoinositide cascade → IP₃ → Ca²⁺ release from ER → Ca²⁺ binds calmodulin subunit of phosphorylase kinase → activates phosphorylase kinase → phosphorylase a</li>
+            <li class="task-item"><strong>Turning OFF breakdown — 3 mechanisms:</strong> (1) G-protein inherent GTPase → GDP → adenylate cyclase off; (2) Phosphodiesterase degrades cAMP → AMP; (3) PP1 dephosphorylates phosphorylase kinase (−P, inactive) AND phosphorylase a → b (inactive)</li>
+            <li class="task-item">PKA also phosphorylates small inhibitory proteins (+P) → bind PP1 catalytic site → inhibit PP1 → prevents premature shutdown while hormone signal is active</li>
+            <li class="task-item"><strong>Insulin effect:</strong> activates glycogen synthase kinase → activates glycogen synthase → synthesis ON (fed-state signal)</li>
+            <li class="task-item"><strong>Reciprocal regulation via PP1 (master synthesis-ON / breakdown-OFF switch):</strong> PP1 dephosphorylates phosphorylase kinase (−P, off) + phosphorylase a → b (breakdown off) + glycogen synthase b → synthase a (synthesis on)</li>
+            <li class="task-item"><strong>PKA = breakdown ON / synthesis OFF:</strong> activates phosphorylase kinase (+P); deactivates glycogen synthase (+P); phosphorylates PP1 inhibitory proteins → inhibits PP1 (triple-locks breakdown ON)</li>
+            <li class="task-item">Master this reciprocal table:
+              <table class="reg-table" style="margin-top:10px;">
+                <tr><th>Signal</th><th>PKA active?</th><th>Phosphorylase</th><th>Glycogen Synthase</th><th>PP1</th><th>Result</th></tr>
+                <tr><td>Glucagon / Epinephrine</td><td style="text-align:center">✅ YES</td><td>a (phospho, active)</td><td>b (phospho, INACTIVE)</td><td>Inhibited</td><td>Breakdown ↑, Synthesis ↓</td></tr>
+                <tr><td>Insulin / Fed state</td><td style="text-align:center">❌ NO</td><td>b (dephospho, inactive)</td><td>a (dephospho, ACTIVE)</td><td>Active</td><td>Synthesis ↑, Breakdown ↓</td></tr>
+              </table>
+            </li>
+            <li class="task-item"><strong>📝 Student Companion problems 6, 7, 9 + Workbook Self-Test 1–28:</strong> cascade &amp; reciprocal regulation — no notes, timed</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div><strong>Critical distinction:</strong> Glycogen Synthase is ACTIVE when dephosphorylated — the opposite of glycogen phosphorylase. This trips up almost everyone. Phosphorylation by PKA = synthesis OFF + breakdown ON. Dephosphorylation by PP1 = synthesis ON + breakdown OFF.</div>
+      </div>
+
+      <!-- TUESDAY EVENING: PPP -->
+      <div id="ppp" class="day-block">
+        <div class="day-label"><span class="weekday">Evening</span>6 PM – 9 PM</div>
+        <div class="day-content">
+          <h3>Pentose Phosphate Pathway — Phases, Mechanisms &amp; All 4 Scenarios <span class="tag tag-blue">3 hrs · Ch 20</span></h3>
+          <ul class="task-list">
+            <li class="task-item"><strong>🃏 Quizlet:</strong> PPP deck — oxidative phase steps, enzyme mechanisms, all 4 cellular need scenarios</li>
+            <li class="task-item">Two products: NADPH (reductive biosynthesis, antioxidant defense) + Ribose-5-P (nucleotides, nucleic acids)</li>
+            <li class="task-item"><strong>Oxidative Phase (irreversible — know well):</strong> G6P + 2 NADP⁺ → Ribulose-5-P + CO₂ + 2 NADPH; 3 reactions: G6PD → 6-phosphogluconolactone → lactonase → 6-phosphogluconate → 6PG-dehydrogenase → Ribulose-5-P + CO₂</li>
+            <li class="task-item">Rate-limiting enzyme = G6PD (Glucose-6-Phosphate Dehydrogenase); activated by high [NADP⁺] — when NADPH is depleted, pathway runs faster</li>
+            <li class="task-item"><strong>Non-oxidative Phase (reversible):</strong> Interconverts 3, 4, 5, 6, 7-carbon sugar phosphates; outputs F6P and GAP — both glycolysis intermediates allowing bidirectional flow</li>
+            <li class="task-item"><strong>Transketolase mechanism:</strong> TPP (Thiamine Pyrophosphate) cofactor stabilizes carbanion intermediate after 2-carbon unit is cleaved from donor; transfers 2-C unit to acceptor sugar</li>
+            <li class="task-item"><strong>Transaldolase mechanism:</strong> Schiff base formed between active-site Lys ε-amino group and keto group of substrate stabilizes carbanion; transfers 3-C unit (dihydroxyacetone) to acceptor sugar</li>
+            <li class="task-item"><strong>4 cellular need scenarios — master these for exam:</strong>
+              <ul class="sub-list">
+                <li class="task-item"><strong>(1) Need more Ribose-5-P than NADPH:</strong> Non-oxidative phase runs in reverse using F6P + GAP from glycolysis → transketolase/transaldolase → R5P. Oxidative phase does not run significantly.</li>
+                <li class="task-item"><strong>(2) Balanced need for both R5P and NADPH:</strong> Oxidative phase runs; R5P is used directly for nucleotide synthesis; F6P/GAP from non-oxidative phase are recycled into glycolysis or used as needed.</li>
+                <li class="task-item"><strong>(3) Need more NADPH than R5P:</strong> Oxidative phase runs fully; excess R5P enters non-oxidative phase → converted to F6P + GAP → enters glycolysis for ATP. Maximum NADPH production.</li>
+                <li class="task-item"><strong>(4) Need NADPH AND ATP:</strong> Same as scenario 3 — NADPH from oxidative phase + F6P/GAP enter glycolysis → ATP. Both needs met in one coordinated flow.</li>
+              </ul>
+            </li>
+            <li class="task-item"><strong>Glutathione antioxidant system:</strong> NADPH (from G6PD) → Glutathione Reductase reduces GSSG → 2 GSH → Glutathione Peroxidase uses GSH to detoxify H₂O₂ → GSSG + H₂O</li>
+            <li class="task-item">G6PD deficiency: cannot make NADPH → cannot regenerate GSH → RBCs accumulate oxidative damage from H₂O₂ → drug-induced hemolytic anemia (with primaquine, dapsone, etc.); X-linked recessive</li>
+            <li class="task-item"><strong>📖 Workbook Self-Test Ch 20 problems 11–13, 15–18, 20 + Textbook problems 7, 9:</strong> all 4 coordination scenarios without notes</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- WEDNESDAY MORNING: Final review -->
+      <div class="divider"><div class="divider-line"></div><span>WEDNESDAY Feb 25 · Final Review → Exam ⚡</span><div class="divider-line"></div></div>
+
+      <div id="final-review" class="day-block">
+        <div class="day-label"><span class="weekday">Morning</span>7 AM – 9 AM</div>
+        <div class="day-content">
+          <h3>Rapid Integration Drill — Exam Morning <span class="tag tag-red">2 hrs max</span></h3>
+          <ul class="task-list">
+            <li class="task-item"><strong>🃏 Quizlet rapid-fire:</strong> All 3 decks back-to-back; flag misses and review only flagged cards (10 min max)</li>
+            <li class="task-item">Draw the full epinephrine → glycogen breakdown cascade from memory — must take under 4 minutes flat</li>
+            <li class="task-item">Write out the 3 enzyme mechanisms (Hexokinase, GAPDH, PK) with nucleophile/electrophile labeled — timed 6 minutes total</li>
+            <li class="task-item">Recite cellular locations for all 5 pathways — glycolysis, PDHC/TCA, ETC, PPP, glycogen</li>
+            <li class="task-item">Run through all 4 PPP coordination scenarios verbally: "If cell needs only NADPH..."</li>
+            <li class="task-item">Final scan: Table 15.1 phosphoryl transfer order; energy charge formula; 6 enzyme class names</li>
+            <li class="task-item">Stop studying 30 min before exam — eat, hydrate, arrive early</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">🧠</span>
+        <div><strong>Two-question framework for every exam problem:</strong><br>
+        &bull; <strong>Mechanism question?</strong> → "What is the nucleophile? Electrophile? What intermediate forms? What type of catalysis?" <br>
+        &bull; <strong>Regulation question?</strong> → "Fed or fasted? Which hormone? Is the enzyme phosphorylated? What does that phosphorylation state mean for activity?" <br>These two frameworks cover the vast majority of this exam.</div>
+      </div>
+
+    </div><!-- /biochem section-body -->
+  </section>
+
+</main>
+
+<script>
+  const sections = document.querySelectorAll('[id]');
+  const links = document.querySelectorAll('.sidebar-link[href^="#"]');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.sidebar-link[href="#${e.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
