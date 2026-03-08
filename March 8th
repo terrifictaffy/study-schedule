@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Pomodoro — March 8</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141418;
+    --border: #2a2a32;
+    --accent-neuro: #7eb8f7;
+    --accent-bio: #85e0b0;
+    --accent-break: #f78fb3;
+    --text: #e8e8f0;
+    --muted: #5a5a70;
+    --timer-size: 240px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 40% at 50% -10%, #1a1a35 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  header { text-align: center; margin-bottom: 2.5rem; }
+
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+  }
+
+  header h1 span { font-style: italic; color: var(--accent-neuro); }
+
+  header p {
+    margin-top: 0.4rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .timer-wrap {
+    position: relative;
+    width: var(--timer-size);
+    height: var(--timer-size);
+    margin: 0 auto 2rem;
+  }
+
+  .timer-wrap svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+  .ring-fg {
+    fill: none; stroke-width: 6; stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.4s;
+  }
+
+  .timer-display {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+
+  .time-text { font-size: 3rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .mode-label { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-top: 0.5rem; }
+
+  .controls { display: flex; gap: 1rem; margin-bottom: 2.5rem; }
+
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn:hover { border-color: var(--current-accent, var(--accent-neuro)); color: var(--current-accent, var(--accent-neuro)); }
+  .btn.primary { background: var(--current-accent, var(--accent-neuro)); color: #000; border-color: transparent; }
+  .btn.primary:hover { opacity: 0.85; color: #000; }
+
+  .sessions { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 0.5rem; }
+  .sessions-title { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+
+  .session-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .session-row::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--color); opacity: 0.7;
+  }
+
+  .session-row.active { border-color: var(--color); background: color-mix(in srgb, var(--color) 6%, var(--surface)); }
+  .session-row.done { opacity: 0.35; }
+  .session-row.done .session-name { text-decoration: line-through; }
+
+  .session-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color); flex-shrink: 0; }
+
+  .session-name { font-family: 'Fraunces', serif; font-size: 0.95rem; font-weight: 300; }
+
+  .session-pomodoros { display: flex; gap: 4px; flex-wrap: wrap; max-width: 120px; }
+
+  .pom-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+  .pom-dot.filled { background: var(--color); }
+
+  .session-time { font-size: 0.65rem; color: var(--muted); white-space: nowrap; }
+
+  .current-info { text-align: center; margin-bottom: 1.5rem; }
+  .current-info .session-name-big { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 300; }
+  .current-info .pom-counter { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 0.2rem; }
+
+  .pom-settings {
+    display: flex; gap: 1.5rem; margin-bottom: 2rem;
+    font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .pom-settings span { display: flex; align-items: center; gap: 0.4rem; }
+  .pom-settings b { color: var(--text); }
+
+  .notification {
+    position: fixed; top: 1.5rem; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--text); color: #000;
+    font-size: 0.75rem; letter-spacing: 0.05em;
+    padding: 0.7rem 1.5rem;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 100;
+  }
+  .notification.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Study <span>Pomodoro</span></h1>
+  <p>Sunday, March 8 · 4:45 PM – Midnight</p>
+</header>
+
+<div class="current-info">
+  <div class="session-name-big" id="currentName">Neuro — Chapter 17</div>
+  <div class="pom-counter" id="pomCounter">Pomodoro 1</div>
+</div>
+
+<div class="timer-wrap">
+  <svg viewBox="0 0 100 100">
+    <circle class="ring-bg" cx="50" cy="50" r="44"/>
+    <circle class="ring-fg" id="ringFg" cx="50" cy="50" r="44"
+      stroke-dasharray="276.46" stroke-dashoffset="0" stroke="#7eb8f7"/>
+  </svg>
+  <div class="timer-display">
+    <div class="time-text" id="timeDisplay">25:00</div>
+    <div class="mode-label" id="modeLabel">Focus</div>
+  </div>
+</div>
+
+<div class="pom-settings">
+  <span>🍅 Focus <b>25 min</b></span>
+  <span>🌿 Break <b>5 min</b></span>
+  <span>☕ Long break <b>15 min</b></span>
+</div>
+
+<div class="controls">
+  <button class="btn" onclick="resetTimer()">Reset</button>
+  <button class="btn primary" id="startBtn" onclick="toggleTimer()">Start</button>
+  <button class="btn" onclick="skipSession()">Skip →</button>
+</div>
+
+<div class="sessions" style="max-width:560px;width:100%;">
+  <div class="sessions-title">Today's Sessions</div>
+  <div id="sessionList"></div>
+</div>
+
+<div class="notification" id="notif"></div>
+
+<script>
+const SESSIONS = [
+  { name: "Neuro — Chapter 17",       duration: 75,  color: "var(--accent-neuro)",  time: "4:45–5:00 PM + after dinner" },
+  { name: "🍽 Dinner Break",           duration: 45,  color: "var(--accent-break)",  time: "5:00–5:45 PM", isBreak: true },
+  { name: "Neuro — Chapter 18",       duration: 75,  color: "var(--accent-neuro)",  time: "5:45–7:00 PM" },
+  { name: "Neuro — Chapter 19",       duration: 75,  color: "var(--accent-neuro)",  time: "7:00–8:15 PM" },
+  { name: "Biochemistry — Session 1", duration: 100, color: "var(--accent-bio)",    time: "8:15–10:00 PM" },
+  { name: "Biochemistry — Session 2", duration: 120, color: "var(--accent-bio)",    time: "10:00 PM–Midnight" },
+];
+
+const FOCUS   = 25 * 60;
+const S_BREAK =  5 * 60;
+const L_BREAK = 15 * 60;
+
+let currentSession = 0;
+let pomsInSession  = 0;   // completed focus poms in this session
+let phase          = 0;   // 0 = focus, 1 = short/long break
+let timeLeft       = FOCUS;
+let running        = false;
+let interval       = null;
+let sessionDone    = Array(SESSIONS.length).fill(false);
+
+function pomsNeeded(mins) { return Math.ceil(mins / 25); }
+
+function breakDuration(completedPoms) {
+  return completedPoms % 4 === 0 ? L_BREAK : S_BREAK;
+}
+
+function renderSessions() {
+  const list = document.getElementById('sessionList');
+  list.innerHTML = '';
+  SESSIONS.forEach((s, i) => {
+    const poms = pomsNeeded(s.duration);
+    const row  = document.createElement('div');
+    row.className = 'session-row'
+      + (i === currentSession ? ' active' : '')
+      + (sessionDone[i]       ? ' done'   : '');
+    row.style.setProperty('--color', s.color);
+    row.onclick = () => jumpToSession(i);
+
+    const dots = Array.from({length: poms}, (_, d) => {
+      const filled = (i < currentSession || (i === currentSession && d < pomsInSession)) ? 'filled' : '';
+      return `<div class="pom-dot ${filled}"></div>`;
+    }).join('');
+
+    row.innerHTML = `
+      <div class="session-dot" style="background:${s.color}"></div>
+      <div class="session-name">${s.name}</div>
+      <div class="session-pomodoros" style="--color:${s.color}">${dots}</div>
+      <div class="session-time">${s.time}</div>`;
+    list.appendChild(row);
+  });
+}
+
+function updateUI() {
+  const s      = SESSIONS[currentSession];
+  const poms   = pomsNeeded(s.duration);
+  const onBreak = phase === 1;
+  const total   = onBreak ? breakDuration(pomsInSession) : FOCUS;
+  const circ    = 276.46;
+
+  document.getElementById('ringFg').style.strokeDashoffset = circ * (1 - timeLeft / total);
+  document.getElementById('ringFg').style.stroke           = s.color;
+  document.documentElement.style.setProperty('--current-accent', s.color);
+
+  const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const sec = String(timeLeft % 60).padStart(2, '0');
+  document.getElementById('timeDisplay').textContent = `${m}:${sec}`;
+  document.getElementById('modeLabel').textContent   = onBreak ? 'Break' : 'Focus';
+  document.getElementById('currentName').textContent = s.name;
+  document.getElementById('pomCounter').textContent  = onBreak
+    ? `Break after pom ${pomsInSession} of ${poms}`
+    : `Pomodoro ${pomsInSession + 1} of ${poms}`;
+  document.getElementById('startBtn').textContent    = running ? 'Pause' : 'Start';
+
+  renderSessions();
+}
+
+function tick() {
+  if (timeLeft > 0) { timeLeft--; updateUI(); return; }
+
+  const s    = SESSIONS[currentSession];
+  const poms = pomsNeeded(s.duration);
+
+  if (phase === 0) {
+    // Focus block finished
+    pomsInSession++;
+    if (pomsInSession >= poms) {
+      // Whole session done
+      sessionDone[currentSession] = true;
+      notify(`✓ ${s.name} complete!`);
+      if (currentSession < SESSIONS.length - 1) {
+        currentSession++; pomsInSession = 0; phase = 0; timeLeft = FOCUS;
+      } else {
+        notify('🎉 All done! Great work tonight!');
+        clearInterval(interval); running = false;
+      }
+    } else {
+      // Take a break
+      phase    = 1;
+      timeLeft = breakDuration(pomsInSession);
+      notify(timeLeft === L_BREAK ? '☕ Long break — 15 min!' : '🌿 Short break — 5 min!');
+    }
+  } else {
+    // Break over → back to focus
+    phase    = 0;
+    timeLeft = FOCUS;
+    notify('🧠 Back to focus!');
+  }
+  updateUI();
+}
+
+function toggleTimer() {
+  if (running) { clearInterval(interval); running = false; }
+  else         { running = true; interval = setInterval(tick, 1000); }
+  updateUI();
+}
+
+function resetTimer() {
+  clearInterval(interval); running = false; phase = 0; timeLeft = FOCUS; updateUI();
+}
+
+function skipSession() {
+  clearInterval(interval); running = false;
+  sessionDone[currentSession] = true;
+  if (currentSession < SESSIONS.length - 1) {
+    currentSession++; pomsInSession = 0; phase = 0; timeLeft = FOCUS;
+    notify(`→ ${SESSIONS[currentSession].name}`);
+  }
+  updateUI();
+}
+
+function jumpToSession(i) {
+  clearInterval(interval); running = false;
+  currentSession = i; pomsInSession = 0; phase = 0; timeLeft = FOCUS;
+  updateUI();
+}
+
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+updateUI();
+</script>
+</body>
+</html>
